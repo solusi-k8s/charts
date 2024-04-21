@@ -1,41 +1,49 @@
-{{- if or (eq .Values.kind "StatefulSet") (eq .Values.kind "Both") }}
 apiVersion: apps/v1
-kind: StatefulSet
-metadata: 
+kind: Deployment
+metadata:
   name: {{ include "common.fullname" . }}
-  labels: 
+  labels:
     {{- include "common.labels" . | nindent 4 }}
     {{- with .Values.podLabels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
-spec: 
+spec:
+  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
-  revisionHistoryLimit: 20
-  selector: 
-    matchLabels: 
+  {{- end }}
+  selector:
+    matchLabels:
       {{- include "common.selectorLabels" . | nindent 6 }}
       {{- with .Values.podLabels }}
       {{- toYaml . | nindent 6 }}
       {{- end }}
-  serviceName: {{ include "common.fullname" . }}
-  template: 
-    metadata: 
-      labels: 
+
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
         {{- include "common.selectorLabels" . | nindent 8 }}
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      name: {{ .Chart.Name }}
-    spec: 
+    spec:
       {{- with .Values.hostAliases }}
       hostAliases:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      containers: 
-        - 
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          name: {{ .Chart.Name }}
+
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "common.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
           env:
           - name: POD_ADDRESS
             valueFrom:
@@ -50,10 +58,16 @@ spec:
           envFrom:
           {{- toYaml . | nindent 10 }}
           {{- end }}
+
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
+
           {{- with .Values.livenessProbe }}
           livenessProbe:
           {{- toYaml . | nindent 12 }}
@@ -70,19 +84,19 @@ spec:
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-
-
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-
       {{- with .Values.nodeSelector }}
       nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.extraVolumes }}
       volumes:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-{{- end }}

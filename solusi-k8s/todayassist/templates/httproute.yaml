@@ -1,0 +1,33 @@
+{{- if .Values.httpRoute.enabled -}}
+{{- $fullName := include "common.fullname" . -}}
+{{- range $v := .Values.httpRoute.routes }}
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: {{ $fullName }}-{{ $v.name }}
+  labels:
+    {{- include "common.labels" $ | nindent 4 }}
+  {{- with $v.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with $v.parents }}
+  parents:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $v.parentRefs }}
+  parentRefs:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $v.hostnames }}
+  hostnames:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $v.rules }}
+  rules:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+{{- end }}
+{{- end }}

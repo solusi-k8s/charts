@@ -1,0 +1,19 @@
+{{- if .Values.healthCheckPolicy.enabled -}}
+{{- $fullName := include "common.fullname" . -}}
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: {{ include "common.fullname" . }}
+  labels:
+    {{- include "common.labels" . | nindent 4 }}
+spec:
+  default:
+    {{- with .Values.healthCheckPolicy.config }}
+    config:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  targetRef:
+    group: ""
+    kind: Service
+    name: {{ include "common.fullname" . }}
+{{- end }}
